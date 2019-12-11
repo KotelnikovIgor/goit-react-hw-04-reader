@@ -1,15 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import queryString from 'query-string';
 import Controls from '../Controls/Controls';
 import Counter from '../Counter/Counter';
 import Publication from '../Publication/Publication';
 import s from './Reader.module.css';
-
-const getLocationValue = location => {
-  const publicationIndex = Number(queryString.parse(location.search).item);
-  return publicationIndex;
-};
 
 class Reader extends Component {
   static propTypes = {
@@ -25,35 +19,52 @@ class Reader extends Component {
 
   componentDidMount() {
     const { history, location, items } = this.props;
-    const publicationIndex = getLocationValue(location, items);
+    const publicationIndex = Number(
+      new URLSearchParams(location.search).get('item'),
+    );
 
-    history.replace({
-      pathname: location.pathname,
-      search: `item=${publicationIndex}`,
-    });
+    if (!publicationIndex || +publicationIndex > items.length) {
+      history.replace({
+        pathname: '/',
+        search: 'item=1',
+      });
+    }
   }
 
   handleNext = () => {
-    const { history, location, items } = this.props;
-    history.push({
-      ...location,
-      search: `item=${getLocationValue(location, items) + 1}`,
+    const { location, history } = this.props;
+    const publicationIndex = Number(
+      new URLSearchParams(location.search).get('item'),
+    );
+    history.replace({
+      pathname: location.pathname,
+      search: `item=${publicationIndex + 1}`,
     });
   };
 
   handlePrev = () => {
-    const { history, location, items } = this.props;
-    history.push({
-      ...location,
-      search: `item=${getLocationValue(location, items) - 1}`,
+    const { location, history } = this.props;
+    const publicationIndex = Number(
+      new URLSearchParams(location.search).get('item'),
+    );
+    history.replace({
+      pathname: location.pathname,
+      search: `item=${publicationIndex - 1}`,
     });
   };
 
   render() {
     const { items, location } = this.props;
-    const publicationIndex = getLocationValue(location, items);
-    const prevIsActive = publicationIndex === 1;
-    const nextIsActive = items.length === publicationIndex;
+    const publicationIndex = Number(
+      new URLSearchParams(location.search).get('item'),
+    );
+    const pageNumber =
+      !publicationIndex || publicationIndex > items.length
+        ? 1
+        : publicationIndex;
+    const prevIsActive = pageNumber === 1;
+    const nextIsActive = pageNumber >= items.length;
+
     return (
       <div className={s.reader}>
         <Controls
@@ -62,11 +73,12 @@ class Reader extends Component {
           handelClickNext={this.handleNext}
           handelClickPrev={this.handlePrev}
         />
-        <Counter index={publicationIndex} />
+
+        <Counter index={pageNumber} />
         <Publication
-          numberPage={publicationIndex}
-          title={items[publicationIndex - 1].title}
-          text={items[publicationIndex - 1].text}
+          numberPage={pageNumber}
+          title={items[pageNumber - 1].title}
+          text={items[pageNumber - 1].text}
         />
       </div>
     );
